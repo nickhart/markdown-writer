@@ -1,0 +1,68 @@
+{
+  // Markdown settings optimized for resume/cover letter editing
+  "markdown.preview.fontFamily": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "markdown.preview.fontSize": 14,
+  "markdown.preview.lineHeight": 1.6,
+  "markdown.preview.breaks": false,
+  "markdown.preview.doubleClickToSwitchToEditor": true,
+
+  // File associations
+  "files.associations": {
+    ".writing.yml": "yaml",
+    "*.yml": "yaml"
+  },
+
+  // YAML settings
+  "yaml.format.enable": true,
+  "yaml.format.singleQuote": false,
+
+  // Spell checker settings for job applications
+  "cSpell.words": [
+    "acme",
+    "docx",
+    "frontmatter",
+    "github",
+    "linkedin",
+    "markdownlint",
+    "pandoc",
+    "templating",
+    "workflow",
+    "yml"
+  ],
+  "cSpell.enabledFiletypes": [
+    "markdown",
+    "yaml"
+  ],
+
+  // Word count visibility
+  "wordcount.showWords": true,
+  "wordcount.showCharacters": false,
+
+  // Markdown linting
+  "markdownlint.config": {
+    "MD013": {
+      "line_length": 120,
+      "code_blocks": false,
+      "tables": false
+    },
+    "MD033": false,
+    "MD036": false
+  },
+
+  // Editor settings for markdown files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
+  },
+
+  // YAML editor settings
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced"
+  }
+}

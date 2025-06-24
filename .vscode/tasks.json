@@ -1,0 +1,162 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Format Current File to DOCX",
+      "type": "shell",
+      "command": "md2docx",
+      "args": ["${file}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Show Job Applications",
+      "type": "shell",
+      "command": "job-log",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Create Job Application",
+      "type": "shell",
+      "command": "job-apply",
+      "args": [
+        "${input:company}",
+        "${input:role}",
+        "${input:templateOrUrl}"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Format Job Application",
+      "type": "shell",
+      "command": "job-format",
+      "args": ["${input:applicationName}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Update Job Status",
+      "type": "shell",
+      "command": "job-status",
+      "args": [
+        "${input:applicationName}",
+        "${input:newStatus}"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Convert to HTML",
+      "type": "shell",
+      "command": "md2html",
+      "args": ["${file}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Convert to PDF",
+      "type": "shell",
+      "command": "md2pdf",
+      "args": ["${file}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "company",
+      "description": "Company name",
+      "default": "",
+      "type": "promptString"
+    },
+    {
+      "id": "role",
+      "description": "Job role/position",
+      "default": "",
+      "type": "promptString"
+    },
+    {
+      "id": "templateOrUrl",
+      "description": "Template name (e.g., 'mobile') or job URL",
+      "default": "default",
+      "type": "promptString"
+    },
+    {
+      "id": "applicationName",
+      "description": "Application name (e.g., acme_corp_engineer_20250624)",
+      "default": "",
+      "type": "promptString"
+    },
+    {
+      "id": "newStatus",
+      "description": "New status",
+      "default": "submitted",
+      "type": "pickString",
+      "options": [
+        "active",
+        "submitted",
+        "interview",
+        "offered",
+        "rejected"
+      ]
+    }
+  ]
+}

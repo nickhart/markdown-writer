@@ -1,0 +1,25 @@
+# Personal configuration
+.writing.yml
+
+# Personal content
+blog/
+job_search/
+
+# Application data (users will create their own)
+applications/*/
+
+# Formatted output
+formatted/
+*.docx
+*.pdf
+*.html
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/

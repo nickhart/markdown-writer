@@ -1,0 +1,22 @@
+# Writing Workflow Configuration
+# Copy this to .writing.yml and edit with your information
+
+# Output preferences
+output_format: docx  # or pdf
+
+# Default templates
+default_resume_template: default
+default_cover_letter_template: default
+
+# Personal info for template substitution
+name: "Your Name"
+preferred_name: "Your Name"
+email: "your.email@example.com"
+phone: "(555) 123-4567"
+address: "123 Main St"
+city: "Your City"
+state: "ST"
+zip: "12345"
+linkedin: "linkedin.com/in/yourname"
+github: "github.com/yourusername"
+website: "yourwebsite.com"
