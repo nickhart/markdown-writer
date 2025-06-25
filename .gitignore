@@ -12,7 +12,6 @@ applications/*/
 formatted/
 *.docx
 *.pdf
-*.html
 
 # System files
 .DS_Store

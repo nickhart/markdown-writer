@@ -236,6 +236,49 @@ url-scrape "https://company.com/jobs/123" job_description.html
 - The system works from any directory within your writing project
 - If functions aren't available, restart your shell or source the script again
 
+## Development and Sync Workflow
+
+### Public Template vs Private Usage
+
+This repository serves as a **public template** for the markdown writing workflow. When using this system for actual job applications, you should maintain a **separate private repository** with your personal data.
+
+**Why separate repositories?**
+- **Privacy**: Keep personal information, application data, and job descriptions private
+- **Development**: Safely pull updates from this template without exposing personal data
+- **Flexibility**: Customize your private setup without affecting the template
+
+### Setting Up Your Private Repository
+
+1. **Clone or fork this public template**
+2. **Create your private repository** with your actual data
+3. **Copy the workflow tools** using the sync script
+
+### Using the Sync Script
+
+The `scripts/sync.sh` script helps you copy updates from this public template to your private repository:
+
+```bash
+# From your private repository
+./scripts/sync.sh [path-to-public-template]
+
+# Example
+./scripts/sync.sh ../markdown-writing-template
+```
+
+**What the sync script does:**
+- Copies core functionality (setup.sh, scripts/, .vscode/)
+- Creates clean template files without personal information
+- Sets up proper .gitignore to protect your private data
+- Preserves your personal .writing.yml and application data
+
+**Recommended workflow:**
+1. **Pull updates** to this public template repository
+2. **Run sync script** from your private repository
+3. **Review changes** and test new features
+4. **Commit updates** to your private repository
+
+This approach lets you benefit from ongoing improvements while keeping your personal job search data completely private.
+
 ## Version
 
 Current version: 0.2.1
