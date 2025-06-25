@@ -1,5 +1,9 @@
 # Markdown Writing Workflow
 
+![Version](https://img.shields.io/badge/version-0.2.1-blue)
+![Shell](https://img.shields.io/badge/shell-bash%2Fzsh-green)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 A markdown-based job application and document management system that streamlines creating, formatting, and tracking job applications.
 
 ## Features
@@ -136,6 +140,21 @@ job-log submitted
 job-log interview
 ```
 
+### Commit Application to Git
+
+```bash
+# Commit the most recent application
+job-commit
+
+# Commit a specific application
+job-commit acme_corp_engineering_manager_20250624
+```
+
+Automatically:
+- Adds application files to git
+- Generates commit message: "Add application for Acme Corp, Engineering Manager"
+- Creates the commit
+
 ## Adding Resume Templates
 
 Create additional resume templates for different roles:
@@ -219,6 +238,6 @@ url-scrape "https://company.com/jobs/123" job_description.html
 
 ## Version
 
-Current version: 0.1.3
+Current version: 0.2.1
 
 For issues and contributions, see TODO.md for planned enhancements.

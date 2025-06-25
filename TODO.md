@@ -60,6 +60,11 @@
   - [x] Custom path/naming convention overrides
   - [ ] Auto-format on markdown changes (file watching)
   - [x] Template variable substitution from config
+  - [x] Git commit workflow for job applications
+    - [x] Add job-commit function
+    - [x] Auto-generate commit messages from application metadata
+    - [x] Handle git add for application files
+    - [x] Example: "Added application for Acme Corp, Engineering Manager"
 
 ### Phase 4: Documentation & Polish
 

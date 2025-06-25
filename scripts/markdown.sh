@@ -753,3 +753,123 @@ job-log() {
 
     return 0
 }
+
+# Git commit workflow for job applications
+# Usage: job-commit [application_name]
+# eg: job-commit acme_engineering_manager_20250624
+# eg: job-commit (uses most recent application)
+job-commit() {
+    validate_project || return 1
+
+    local application_name="$1"
+    local valid_statuses=("active" "submitted" "interview" "offered" "rejected")
+    local current_status=""
+    local current_path=""
+
+    # If no application name provided, find the most recent one
+    if [[ -z "$application_name" ]]; then
+        log_info "Finding most recent application..."
+        local most_recent=""
+        local most_recent_time=0
+        
+        for app_status in "${valid_statuses[@]}"; do
+            local status_dir="$WRITING_PROJECT_ROOT/applications/$app_status"
+            if [[ -d "$status_dir" ]]; then
+                for app_dir in "$status_dir"/*; do
+                    if [[ -d "$app_dir" ]]; then
+                        local app_name=$(basename "$app_dir")
+                        local metadata_file="$app_dir/application.yml"
+                        if [[ -f "$metadata_file" ]]; then
+                            local date_created=$(yq '.date_created' "$metadata_file" 2>/dev/null | sed 's/^"//;s/"$//')
+                            if [[ "$date_created" != "null" ]]; then
+                                local timestamp=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$date_created" "+%s" 2>/dev/null || echo "0")
+                                if [[ "$timestamp" -gt "$most_recent_time" ]]; then
+                                    most_recent_time="$timestamp"
+                                    most_recent="$app_name"
+                                    current_status="$app_status"
+                                    current_path="$app_dir"
+                                fi
+                            fi
+                        fi
+                    fi
+                done
+            fi
+        done
+        
+        if [[ -z "$most_recent" ]]; then
+            log_error "No applications found to commit"
+            return 1
+        fi
+        
+        application_name="$most_recent"
+        log_info "Using most recent application: $application_name"
+    else
+        # Find the specified application in status directories
+        for app_status in "${valid_statuses[@]}"; do
+            local check_path="$WRITING_PROJECT_ROOT/applications/$app_status/$application_name"
+            if [[ -d "$check_path" ]]; then
+                current_status="$app_status"
+                current_path="$check_path"
+                break
+            fi
+        done
+
+        if [[ -z "$current_status" ]]; then
+            log_error "Application not found: $application_name"
+            return 1
+        fi
+    fi
+
+    log_info "Committing application: $application_name"
+    log_info "Location: $current_path"
+
+    # Check if we're in a git repository
+    if ! git rev-parse --git-dir >/dev/null 2>&1; then
+        log_error "Not in a git repository"
+        return 1
+    fi
+
+    # Read application metadata
+    local metadata_file="$current_path/application.yml"
+    if [[ ! -f "$metadata_file" ]]; then
+        log_error "Application metadata not found: $metadata_file"
+        return 1
+    fi
+
+    local company=$(yq '.company' "$metadata_file" 2>/dev/null | sed 's/^"//;s/"$//')
+    local role=$(yq '.role' "$metadata_file" 2>/dev/null | sed 's/^"//;s/"$//')
+    local resume_template=$(yq '.resume_template' "$metadata_file" 2>/dev/null | sed 's/^"//;s/"$//')
+
+    # Handle null values
+    [[ "$company" == "null" ]] && company="Unknown Company"
+    [[ "$role" == "null" ]] && role="Unknown Role"
+    [[ "$resume_template" == "null" ]] && resume_template="default"
+
+    # Generate commit message
+    local commit_message="Add application for $company, $role"
+    if [[ "$resume_template" != "default" ]]; then
+        commit_message="$commit_message (using $resume_template template)"
+    fi
+
+    log_info "Adding files to git..."
+    
+    # Add the application directory to git
+    local relative_path="applications/$current_status/$application_name"
+    git add "$relative_path" || {
+        log_error "Failed to add application files to git"
+        return 1
+    }
+
+    log_info "Creating commit with message: $commit_message"
+    
+    # Commit the changes
+    git commit -m "$commit_message" || {
+        log_error "Failed to create git commit"
+        return 1
+    }
+
+    log_success "Successfully committed application!"
+    log_info "Commit message: $commit_message"
+    
+    return 0
+}
