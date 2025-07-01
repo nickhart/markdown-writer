@@ -16,6 +16,21 @@ A markdown-based job application and document management system that streamlines
 
 ## Quick Start
 
+### Getting Started
+
+**Option 1: Use as Template (Recommended)**
+
+1. Visit the [Markdown Writer repository](https://github.com/nickhart/markdown-writer)
+1. Click "Use this template" to create your own private repository
+1. Clone your new repository and run `./setup.sh`
+
+**Option 2: Clone and Experiment**
+
+```bash
+git clone git@github.com:nickhart/markdown-writer.git
+cd markdown-writer
+```
+
 ### 1. Setup
 
 Run the setup script to install dependencies and configure your environment:
@@ -151,6 +166,7 @@ job-commit acme_corp_engineering_manager_20250624
 ```
 
 Automatically:
+
 - Adds application files to git
 - Generates commit message: "Add application for Acme Corp, Engineering Manager"
 - Creates the commit
@@ -240,47 +256,58 @@ url-scrape "https://company.com/jobs/123" job_description.html
 
 ### Public Template vs Private Usage
 
-This repository serves as a **public template** for the markdown writing workflow. When using this system for actual job applications, you should maintain a **separate private repository** with your personal data.
+This repository serves as a **public template** for the markdown writing workflow.
+When using this system for actual job applications, you should
+maintain a **separate private repository** with your personal data.
 
 **Why separate repositories?**
+
 - **Privacy**: Keep personal information, application data, and job descriptions private
 - **Development**: Safely pull updates from this template without exposing personal data
 - **Flexibility**: Customize your private setup without affecting the template
 
-### Setting Up Your Private Repository
+### Getting Updates from the Template
 
-1. **Clone or fork this public template**
-2. **Create your private repository** with your actual data
-3. **Copy the workflow tools** using the sync script
+If you used the template to create your private repository, you'll need to manually get updates from the original template.
+Here's how:
 
-### Using the Sync Script
-
-The `scripts/sync.sh` script helps you copy updates from this public template to your private repository:
+**Method 1: Clone the original template for updates**
 
 ```bash
-# From your private repository
-./scripts/sync.sh [path-to-public-template]
+# Clone the original template to get updates
+git clone git@github.com:nickhart/markdown-writer.git ../markdown-writer-template
 
-# Example
-./scripts/sync.sh ../markdown-writing-template
+# From your private repository, sync the updates
+./scripts/sync.sh ../markdown-writer-template
+```
+
+**Method 2: Add the template as a remote**
+
+```bash
+# From your private repository, add the template as a remote
+git remote add template git@github.com:nickhart/markdown-writer.git
+
+# Fetch updates
+git fetch template
+
+# Use sync script to copy specific files
+git clone template/main ../temp-template
+./scripts/sync.sh ../temp-template
+rm -rf ../temp-template
 ```
 
 **What the sync script does:**
+
 - Copies core functionality (setup.sh, scripts/, .vscode/)
-- Creates clean template files without personal information
-- Sets up proper .gitignore to protect your private data
-- Preserves your personal .writing.yml and application data
+- Updates template files without overwriting your personal data
+- Preserves your .writing.yml and application data
+- Updates .gitignore to protect your private information
 
-**Recommended workflow:**
-1. **Pull updates** to this public template repository
-2. **Run sync script** from your private repository
-3. **Review changes** and test new features
-4. **Commit updates** to your private repository
-
-This approach lets you benefit from ongoing improvements while keeping your personal job search data completely private.
+Note: Since GitHub templates create a clean copy without git history connection to the original, you need to manually
+manage updates. The sync script helps copy only the files you want while protecting your personal data.
 
 ## Version
 
-Current version: 0.2.1
+Current version: 0.9.0
 
 For issues and contributions, see TODO.md for planned enhancements.
