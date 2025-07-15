@@ -333,16 +333,33 @@ job-apply() {
         return 1
     fi
 
+    # Extract name from config for personalized filenames
+    local config_file="$WRITING_PROJECT_ROOT/.writing.yml"
+    local user_name=""
+    if [[ -f "$config_file" ]] && command_exists yq; then
+        user_name=$(yq '.name' "$config_file" 2>/dev/null | sed 's/^"//;s/"$//')
+        [[ "$user_name" == "null" ]] && user_name=""
+    fi
+    
+    # Create personalized filenames
+    local name_suffix=""
+    if [[ -n "$user_name" ]]; then
+        name_suffix="_$(echo "$user_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/__*/_/g' | sed 's/^_\|_$//g')"
+    fi
+    
+    local resume_filename="resume${name_suffix}.md"
+    local cover_letter_filename="cover_letter${name_suffix}.md"
+
     # Format templates using format-template function
     log_info "Formatting resume from template: $resume_template"
-    format-template "$resume_template_path" "$application_path/resume.md" || {
+    format-template "$resume_template_path" "$application_path/$resume_filename" || {
         log_error "Failed to format resume template"
         rm -rf "$application_path" 2>/dev/null
         return 1
     }
 
     log_info "Formatting cover letter from template"
-    format-template "$cover_letter_template_path" "$application_path/cover_letter.md" || {
+    format-template "$cover_letter_template_path" "$application_path/$cover_letter_filename" || {
         log_error "Failed to format cover letter template"
         rm -rf "$application_path" 2>/dev/null
         return 1
@@ -373,7 +390,7 @@ EOF
     log_success "Job application created successfully!"
     log_info "Location: $application_path"
     log_info "Next steps:"
-    echo "  1. Edit resume.md and cover_letter.md with job-specific content"
+    echo "  1. Edit $resume_filename and $cover_letter_filename with job-specific content"
     echo "  2. Format documents: job-format $application_name"
     echo "  3. Update status: job-status $application_name submitted"
 
@@ -424,17 +441,34 @@ job-format() {
     log_info "Formatting documents for: $application_name"
     log_info "Location: $current_path"
 
-    # Check if resume and cover letter exist
-    local resume_file="$current_path/resume.md"
-    local cover_letter_file="$current_path/cover_letter.md"
+    # Find resume and cover letter files (handle both old and new naming conventions)
+    local resume_file=""
+    local cover_letter_file=""
+    
+    # Look for personalized filenames first, then fall back to generic names
+    for file in "$current_path"/resume*.md; do
+        if [[ -f "$file" ]]; then
+            resume_file="$file"
+            break
+        fi
+    done
+    
+    for file in "$current_path"/cover_letter*.md; do
+        if [[ -f "$file" ]]; then
+            cover_letter_file="$file"
+            break
+        fi
+    done
 
-    if [[ ! -f "$resume_file" ]]; then
-        log_error "Resume not found: $resume_file"
+    if [[ -z "$resume_file" ]]; then
+        log_error "Resume file not found in: $current_path"
+        log_error "Expected: resume*.md"
         return 1
     fi
 
-    if [[ ! -f "$cover_letter_file" ]]; then
-        log_error "Cover letter not found: $cover_letter_file"
+    if [[ -z "$cover_letter_file" ]]; then
+        log_error "Cover letter file not found in: $current_path"
+        log_error "Expected: cover_letter*.md"
         return 1
     fi
 
@@ -446,7 +480,8 @@ job-format() {
     log_info "Converting resume to DOCX..."
     local resume_template_type="resume"
     local resume_reference_doc="$WRITING_PROJECT_ROOT/templates/$resume_template_type/reference.docx"
-    local resume_output="$formatted_dir/resume.docx"
+    local resume_basename=$(basename "$resume_file" .md)
+    local resume_output="$formatted_dir/${resume_basename}.docx"
 
     if [[ -f "$resume_reference_doc" ]]; then
         log_info "Using reference document: $resume_reference_doc"
@@ -468,7 +503,8 @@ job-format() {
     log_info "Converting cover letter to DOCX..."
     local cover_letter_template_type="cover_letter"
     local cover_letter_reference_doc="$WRITING_PROJECT_ROOT/templates/$cover_letter_template_type/reference.docx"
-    local cover_letter_output="$formatted_dir/cover_letter.docx"
+    local cover_letter_basename=$(basename "$cover_letter_file" .md)
+    local cover_letter_output="$formatted_dir/${cover_letter_basename}.docx"
 
     if [[ -f "$cover_letter_reference_doc" ]]; then
         log_info "Using reference document: $cover_letter_reference_doc"
@@ -488,8 +524,114 @@ job-format() {
 
     log_success "Job application formatted successfully!"
     log_info "Documents available in: $formatted_dir"
-    echo "  - resume.docx"
-    echo "  - cover_letter.docx"
+    echo "  - ${resume_basename}.docx"
+    echo "  - ${cover_letter_basename}.docx"
+
+    return 0
+}
+
+# Create interview notes for a job application
+# Usage: job-notes <application_name> <note_type>
+# eg: job-notes acme_engineering_manager_20250624 recruiter
+# eg: job-notes acme_engineering_manager_20250624 panel
+job-notes() {
+    validate_project || return 1
+
+    local application_name="$1"
+    local note_type="$2"
+
+    if [[ -z "$application_name" ]] || [[ -z "$note_type" ]]; then
+        log_error "Usage: job-notes <application_name> <note_type>"
+        log_error "Note types: recruiter, manager, panel, or custom name"
+        log_error "Example: job-notes acme_engineering_manager_20250624 recruiter"
+        return 1
+    fi
+
+    # Valid status directories
+    local valid_statuses=("active" "submitted" "interview" "offered" "rejected")
+    local current_status=""
+    local current_path=""
+
+    # Find the application in status directories
+    for app_status in "${valid_statuses[@]}"; do
+        local check_path="$WRITING_PROJECT_ROOT/applications/$app_status/$application_name"
+        if [[ -d "$check_path" ]]; then
+            current_status="$app_status"
+            current_path="$check_path"
+            break
+        fi
+    done
+
+    if [[ -z "$current_status" ]]; then
+        log_error "Application not found: $application_name"
+        log_info "Available applications:"
+        for app_status in "${valid_statuses[@]}"; do
+            local apps=$(ls "$WRITING_PROJECT_ROOT/applications/$app_status/" 2>/dev/null | head -3)
+            if [[ -n "$apps" ]]; then
+                echo "  $app_status: $(echo "$apps" | tr '\n' ' ')"
+            fi
+        done
+        return 1
+    fi
+
+    log_info "Creating interview notes for: $application_name"
+    log_info "Note type: $note_type"
+    log_info "Location: $current_path"
+
+    # Validate notes template exists
+    local notes_template_path="$WRITING_PROJECT_ROOT/templates/notes/default.md"
+    if [[ ! -f "$notes_template_path" ]]; then
+        log_error "Notes template not found: $notes_template_path"
+        return 1
+    fi
+
+    # Create simple filename for notes (no name suffix needed)
+    local notes_filename="${note_type}_notes.md"
+    local notes_file="$current_path/$notes_filename"
+
+    # Check if notes file already exists
+    if [[ -f "$notes_file" ]]; then
+        log_warning "Notes file already exists: $notes_filename"
+        read -p "Overwrite existing notes? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Keeping existing notes file"
+            return 0
+        fi
+    fi
+
+    # Read application metadata for template substitution
+    local metadata_file="$current_path/application.yml"
+    local company="Unknown Company"
+    local role="Unknown Role"
+    
+    if [[ -f "$metadata_file" ]] && command_exists yq; then
+        company=$(yq '.company' "$metadata_file" 2>/dev/null | sed 's/^"//;s/"$//')
+        role=$(yq '.role' "$metadata_file" 2>/dev/null | sed 's/^"//;s/"$//')
+        [[ "$company" == "null" ]] && company="Unknown Company"
+        [[ "$role" == "null" ]] && role="Unknown Role"
+    fi
+
+    # Create notes from template with substitutions
+    log_info "Creating notes from template"
+    local content=$(cat "$notes_template_path")
+    local current_date=$(date +"%B %d, %Y")
+    
+    # Perform substitutions
+    content="${content//\{\{company\}\}/$company}"
+    content="${content//\{\{role\}\}/$role}"
+    content="${content//\{\{date\}\}/$current_date}"
+    content="${content//\{\{application_name\}\}/$application_name}"
+    
+    # Write notes file
+    echo "$content" > "$notes_file"
+
+    log_success "Interview notes created successfully!"
+    log_info "Notes file: $notes_filename"
+    log_info "Next steps:"
+    echo "  1. Edit $notes_filename with your research and preparation"
+    echo "  2. Use during interview for note-taking"
+    echo "  3. Update after interview with outcomes and next steps"
 
     return 0
 }

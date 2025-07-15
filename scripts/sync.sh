@@ -245,13 +245,14 @@ cp scripts/sync.sh "$PRIVATE_REPO_PATH/scripts/"
 
 # Update templates (but preserve personal ones)
 log_info "Updating template files..."
-mkdir -p "$PRIVATE_REPO_PATH/templates/resume" "$PRIVATE_REPO_PATH/templates/cover_letter" "$PRIVATE_REPO_PATH/templates/blog"
+mkdir -p "$PRIVATE_REPO_PATH/templates/resume" "$PRIVATE_REPO_PATH/templates/cover_letter" "$PRIVATE_REPO_PATH/templates/blog" "$PRIVATE_REPO_PATH/templates/notes"
 
 # Copy template files that don't contain personal data
 cp templates/resume/default.md "$PRIVATE_REPO_PATH/templates/resume/" 2>/dev/null || true
 cp templates/cover_letter/default.md "$PRIVATE_REPO_PATH/templates/cover_letter/" 2>/dev/null || true
 cp templates/blog/default.md "$PRIVATE_REPO_PATH/templates/blog/" 2>/dev/null || true
 cp templates/blog/style.css "$PRIVATE_REPO_PATH/templates/blog/" 2>/dev/null || true
+cp templates/notes/default.md "$PRIVATE_REPO_PATH/templates/notes/" 2>/dev/null || true
 
 # Update documentation files
 mkdir -p "$PRIVATE_REPO_PATH/docs"
@@ -280,6 +281,7 @@ echo "  - scripts/markdown.sh"
 echo "  - scripts/sync.sh"
 echo "  - .vscode/ configuration"
 echo "  - templates/ (default templates only)"
+echo "  - templates/notes/default.md"
 echo "  - VERSION"
 echo "  - docs/DEVELOPMENT.md"
 echo "  - docs/AI_DEVELOPMENT.md"
