@@ -253,9 +253,13 @@ cp templates/cover_letter/default.md "$PRIVATE_REPO_PATH/templates/cover_letter/
 cp templates/blog/default.md "$PRIVATE_REPO_PATH/templates/blog/" 2>/dev/null || true
 cp templates/blog/style.css "$PRIVATE_REPO_PATH/templates/blog/" 2>/dev/null || true
 
-# Update CLAUDE.md
-if [[ -f "CLAUDE.md" ]]; then
-    cp CLAUDE.md "$PRIVATE_REPO_PATH/"
+# Update documentation files
+mkdir -p "$PRIVATE_REPO_PATH/docs"
+if [[ -f "docs/DEVELOPMENT.md" ]]; then
+    cp docs/DEVELOPMENT.md "$PRIVATE_REPO_PATH/docs/"
+fi
+if [[ -f "docs/AI_DEVELOPMENT.md" ]]; then
+    cp docs/AI_DEVELOPMENT.md "$PRIVATE_REPO_PATH/docs/"
 fi
 
 # Preserve personal configuration
@@ -277,7 +281,8 @@ echo "  - scripts/sync.sh"
 echo "  - .vscode/ configuration"
 echo "  - templates/ (default templates only)"
 echo "  - VERSION"
-echo "  - CLAUDE.md"
+echo "  - docs/DEVELOPMENT.md"
+echo "  - docs/AI_DEVELOPMENT.md"
 echo
 log_info "Next steps:"
 echo "  1. cd '$PRIVATE_REPO_PATH'"

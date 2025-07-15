@@ -1,6 +1,6 @@
-# CLAUDE.md
+# Development Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This document provides technical guidance for developers working with the markdown-writer codebase.
 
 ## Project Overview
 
@@ -31,7 +31,7 @@ This is a markdown-based job application and document management system built wi
 - `md2docx/md2html/md2pdf`: Document conversion utilities
 - `url-scrape`: Job description archiving
 
-## Common Commands
+## Command Reference
 
 ### Setup and Dependencies
 ```bash
@@ -166,7 +166,7 @@ Each blog post creates:
 - `images/` - Directory for blog post images
 - `formatted/` - HTML outputs after running `blog-format`
 
-## Development Notes
+## Implementation Notes
 
 - All functions validate project root using `find_project_root()`
 - Status changes move directories between application/blog folders
@@ -186,3 +186,11 @@ Each blog post creates:
 - Validate template substitution in generated markdown
 - Test status transitions with `job-status` and `blog-status`
 - Verify git commits include proper application files
+
+## Contributing
+
+When making changes:
+1. Test all affected functions
+2. Update documentation as needed
+3. Follow existing code style and patterns
+4. Test the sync.sh script if modifying core files
