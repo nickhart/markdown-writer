@@ -4,16 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a markdown-based job application and document management system built with bash scripts. It provides a template-driven workflow for creating resumes, cover letters, and tracking job applications through different stages.
+This is a markdown-based job application and document management system built with bash scripts. It provides a template-driven workflow for creating resumes, cover letters, and tracking job applications through different stages. It also includes blog post management with similar template-based workflows.
 
 ## Core Architecture
 
 ### Main Components
 
-- **scripts/markdown.sh**: Core shell functions for document processing and job application management
+- **scripts/markdown.sh**: Core shell functions for document processing, job application management, and blog post management
 - **setup.sh**: Initial setup script for dependencies and configuration
-- **templates/**: Markdown templates for resumes and cover letters with variable substitution
+- **templates/**: Markdown templates for resumes, cover letters, and blog posts with variable substitution
 - **applications/**: Directory structure organizing applications by status (active, submitted, interview, offered, rejected)
+- **blog/**: Directory structure organizing blog posts by status (drafts, published)
 
 ### Key Functions (in scripts/markdown.sh)
 
@@ -22,6 +23,10 @@ This is a markdown-based job application and document management system built wi
 - `job-status`: Manages application status transitions
 - `job-log`: Displays application summaries
 - `job-commit`: Git workflow for committing applications
+- `blog-create`: Creates new blog posts from templates
+- `blog-format`: Converts blog posts to HTML
+- `blog-status`: Manages blog post status transitions
+- `blog-log`: Displays blog post summaries
 - `format-template`: Variable substitution from `.writing.yml`
 - `md2docx/md2html/md2pdf`: Document conversion utilities
 - `url-scrape`: Job description archiving
@@ -53,6 +58,23 @@ job-log submitted            # Specific status
 # Commit to git
 job-commit application_name   # Specific application
 job-commit                   # Most recent application
+```
+
+### Blog Post Workflow
+```bash
+# Create new blog post
+blog-create "Post Title"
+blog-create "Post Title" "template_name"
+
+# Format blog post to HTML
+blog-format post_name
+
+# Update blog post status
+blog-status post_name published
+
+# View blog posts
+blog-log                     # All blog posts
+blog-log drafts             # Specific status
 ```
 
 ### Document Processing
@@ -88,6 +110,7 @@ website: "yourwebsite.com"
 Templates use `{{variable}}` syntax for substitution:
 - `{{name}}`, `{{email}}`, `{{phone}}`, etc. from `.writing.yml`
 - `{{date}}` - auto-generated current date
+- `{{title}}` - blog post title (blog templates only)
 - `{{email}}` becomes `[email](mailto:email)` format
 - `{{website}}` becomes `[website](https://website)` format
 
@@ -100,15 +123,21 @@ Templates use `{{variable}}` syntax for substitution:
 │   ├── interview/          # Interview scheduled
 │   ├── offered/            # Job offers
 │   └── rejected/           # Rejected applications
+├── blog/
+│   ├── drafts/             # Draft blog posts
+│   └── published/          # Published blog posts
 ├── templates/
 │   ├── resume/
 │   │   ├── default.md      # Default resume template
 │   │   ├── mobile.md       # Mobile-specific template
 │   │   ├── frontend.md     # Frontend-specific template
 │   │   └── reference.docx  # DOCX formatting reference
-│   └── cover_letter/
-│       ├── default.md      # Default cover letter template
-│       └── reference.docx  # DOCX formatting reference
+│   ├── cover_letter/
+│   │   ├── default.md      # Default cover letter template
+│   │   └── reference.docx  # DOCX formatting reference
+│   └── blog/
+│       ├── default.md      # Default blog post template
+│       └── style.css       # CSS styling for HTML output
 └── scripts/
     └── markdown.sh         # Core functions
 ```
@@ -129,20 +158,31 @@ Each application creates:
 - `job_description.html` - Scraped from URL (if provided)
 - `formatted/` - DOCX outputs after running `job-format`
 
+## Blog Post Structure
+
+Each blog post creates:
+- `content.md` - Generated from template with title and metadata
+- `post.yml` - Metadata (title, template, date, status, tags, category)
+- `images/` - Directory for blog post images
+- `formatted/` - HTML outputs after running `blog-format`
+
 ## Development Notes
 
 - All functions validate project root using `find_project_root()`
-- Status changes move directories between application folders
+- Status changes move directories between application/blog folders
 - Git integration through `job-commit` with auto-generated messages
-- Reference DOCX files control formatting for pandoc conversion
-- Template substitution happens during `job-apply`, not format time
+- Reference DOCX files control formatting for pandoc conversion for job applications
+- Blog posts use CSS styling for HTML output with `templates/blog/style.css`
+- Template substitution happens during `job-apply`/`blog-create`, not format time
 - Web scraping prefers Chrome with UTF-8 BOM for proper encoding
 - Error handling with colored log functions (log_error, log_success, etc.)
+- Blog post naming follows `sanitized_title_MMDDYYYY` pattern
 
 ## Testing
 
 - Use `job-log` to verify application states
-- Check `formatted/` directory for DOCX output
+- Use `blog-log` to verify blog post states
+- Check `formatted/` directory for DOCX output (applications) and HTML output (blog posts)
 - Validate template substitution in generated markdown
-- Test status transitions with `job-status`
+- Test status transitions with `job-status` and `blog-status`
 - Verify git commits include proper application files
