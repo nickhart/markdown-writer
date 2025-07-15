@@ -32,7 +32,6 @@ PRIVATE_REPO_PATH="$1"
 
 if [[ -z "$PRIVATE_REPO_PATH" ]]; then
     log_error "Usage: ./scripts/sync.sh /path/to/private/writing-repo"
-    log_error "Example: ./scripts/sync.sh ../my-private-writing"
     exit 1
 fi
 
@@ -48,17 +47,25 @@ check_public_repository() {
     local current_remote=""
     if git rev-parse --git-dir >/dev/null 2>&1; then
         current_remote=$(git remote get-url origin 2>/dev/null || echo "")
-        
+
         # Check if this looks like a private repository (has personal data)
-        if [[ -f ".writing.yml" ]] && ! grep -q "your.email@example.com" ".writing.yml" 2>/dev/null; then
-            log_error "SAFETY CHECK FAILED: This appears to be a private repository with personal data!"
-            log_error "This script should be run from the PUBLIC template repository"
-            log_error "Current directory: $(pwd)"
-            log_error "Aborting to prevent syncing personal data to other repos"
-            exit 1
+        if [[ -f ".writing.yml" ]]; then
+            # If .writing.yml exists, it should contain example data, not real personal data
+            if grep -q -E "(your\.email@example\.com|test@example\.com)" ".writing.yml" 2>/dev/null; then
+                log_info "Found example .writing.yml - this appears to be the public template"
+            else
+                log_error "SAFETY CHECK FAILED: .writing.yml appears to contain personal data!"
+                log_error "This appears to be a private repository with real personal information"
+                log_error "This script should be run from the PUBLIC template repository"
+                log_error "Current directory: $(pwd)"
+                log_error "Expected to find example email like 'your.email@example.com' or 'test@example.com'"
+                exit 1
+            fi
+        else
+            log_info "No .writing.yml found - this appears to be the public template"
         fi
     fi
-    
+
     log_info "Public repository safety check passed"
 }
 
@@ -78,13 +85,13 @@ fi
 # Check git status of private repo
 check_private_repo_git_status() {
     local repo_path="$1"
-    
+
     if [[ ! -d "$repo_path/.git" ]]; then
         log_warning "Private repository is not a git repository: $repo_path"
         log_warning "Consider initializing git for better change tracking"
         return 0
     fi
-    
+
     # Check if there are unstaged changes
     if ! git -C "$repo_path" diff --quiet; then
         log_error "Private repository has unstaged changes!"
@@ -98,7 +105,7 @@ check_private_repo_git_status() {
         echo "  OR: git -C '$repo_path' stash"
         exit 1
     fi
-    
+
     # Check if there are staged changes
     if ! git -C "$repo_path" diff --cached --quiet; then
         log_error "Private repository has staged but uncommitted changes!"
@@ -110,7 +117,7 @@ check_private_repo_git_status() {
         echo "  git -C '$repo_path' commit -m 'Save changes before sync'"
         exit 1
     fi
-    
+
     # Show current branch info
     local current_branch=$(git -C "$repo_path" branch --show-current 2>/dev/null || echo "detached")
     log_info "Private repository is on branch: $current_branch"
