@@ -23,6 +23,7 @@ This is a markdown-based job application and document management system built wi
 - `job-status`: Manages application status transitions
 - `job-log`: Displays application summaries
 - `job-commit`: Git workflow for committing applications
+- `job-notes`: Creates interview notes from templates
 - `blog-create`: Creates new blog posts from templates
 - `blog-format`: Converts blog posts to HTML
 - `blog-status`: Manages blog post status transitions
