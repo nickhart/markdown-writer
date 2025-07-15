@@ -153,9 +153,88 @@ cp scripts/markdown.sh "$PRIVATE_REPO_PATH/scripts/"
 # VSCode configuration (if exists)
 if [[ -d ".vscode" ]]; then
     mkdir -p "$PRIVATE_REPO_PATH/.vscode"
-    cp .vscode/extensions.json "$PRIVATE_REPO_PATH/.vscode/" 2>/dev/null || true
-    cp .vscode/settings.json "$PRIVATE_REPO_PATH/.vscode/" 2>/dev/null || true
-    cp .vscode/tasks.json "$PRIVATE_REPO_PATH/.vscode/" 2>/dev/null || true
+    
+    # Handle extensions.json (safe to overwrite - it's just recommendations)
+    if [[ -f ".vscode/extensions.json" ]]; then
+        cp .vscode/extensions.json "$PRIVATE_REPO_PATH/.vscode/" 2>/dev/null || true
+        log_info "Updated .vscode/extensions.json"
+    fi
+    
+    # Handle settings.json (preserve user customizations)
+    if [[ -f ".vscode/settings.json" ]]; then
+        if [[ -f "$PRIVATE_REPO_PATH/.vscode/settings.json" ]]; then
+            log_warning "Found existing .vscode/settings.json with potential customizations"
+            echo "Template version: .vscode/settings.json"
+            echo "Your version: $PRIVATE_REPO_PATH/.vscode/settings.json"
+            echo
+            read -p "Overwrite your settings.json? (y/n/d for diff): " -n 1 -r
+            echo
+            case $REPLY in
+                [Yy]* ) 
+                    cp .vscode/settings.json "$PRIVATE_REPO_PATH/.vscode/"
+                    log_info "Overwrote .vscode/settings.json"
+                    ;;
+                [Dd]* )
+                    echo "=== DIFF: Template -> Your current ==="
+                    diff .vscode/settings.json "$PRIVATE_REPO_PATH/.vscode/settings.json" || true
+                    echo "=== END DIFF ==="
+                    echo
+                    read -p "Now overwrite? (y/N): " -n 1 -r
+                    echo
+                    if [[ $REPLY =~ ^[Yy]$ ]]; then
+                        cp .vscode/settings.json "$PRIVATE_REPO_PATH/.vscode/"
+                        log_info "Overwrote .vscode/settings.json"
+                    else
+                        log_info "Kept your existing .vscode/settings.json"
+                    fi
+                    ;;
+                * )
+                    log_info "Kept your existing .vscode/settings.json"
+                    ;;
+            esac
+        else
+            cp .vscode/settings.json "$PRIVATE_REPO_PATH/.vscode/"
+            log_info "Created new .vscode/settings.json"
+        fi
+    fi
+    
+    # Handle tasks.json (preserve user customizations)
+    if [[ -f ".vscode/tasks.json" ]]; then
+        if [[ -f "$PRIVATE_REPO_PATH/.vscode/tasks.json" ]]; then
+            log_warning "Found existing .vscode/tasks.json with potential customizations"
+            echo "Template version: .vscode/tasks.json"
+            echo "Your version: $PRIVATE_REPO_PATH/.vscode/tasks.json"
+            echo
+            read -p "Overwrite your tasks.json? (y/n/d for diff): " -n 1 -r
+            echo
+            case $REPLY in
+                [Yy]* ) 
+                    cp .vscode/tasks.json "$PRIVATE_REPO_PATH/.vscode/"
+                    log_info "Overwrote .vscode/tasks.json"
+                    ;;
+                [Dd]* )
+                    echo "=== DIFF: Template -> Your current ==="
+                    diff .vscode/tasks.json "$PRIVATE_REPO_PATH/.vscode/tasks.json" || true
+                    echo "=== END DIFF ==="
+                    echo
+                    read -p "Now overwrite? (y/N): " -n 1 -r
+                    echo
+                    if [[ $REPLY =~ ^[Yy]$ ]]; then
+                        cp .vscode/tasks.json "$PRIVATE_REPO_PATH/.vscode/"
+                        log_info "Overwrote .vscode/tasks.json"
+                    else
+                        log_info "Kept your existing .vscode/tasks.json"
+                    fi
+                    ;;
+                * )
+                    log_info "Kept your existing .vscode/tasks.json"
+                    ;;
+            esac
+        else
+            cp .vscode/tasks.json "$PRIVATE_REPO_PATH/.vscode/"
+            log_info "Created new .vscode/tasks.json"
+        fi
+    fi
 fi
 
 # Update VERSION and sync script itself
