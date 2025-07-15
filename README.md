@@ -4,15 +4,23 @@
 ![Shell](https://img.shields.io/badge/shell-bash%2Fzsh-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-A markdown-based job application and document management system that streamlines creating, formatting, and tracking job applications.
+A markdown-based job application and document management system that streamlines creating, formatting, and tracking job applications and blog posts.
 
 ## Features
 
+### Job Applications
 - **Template-based workflow**: Create resumes and cover letters from markdown templates with automatic variable substitution
 - **Professional formatting**: Automatic conversion to DOCX with customizable reference documents
 - **Job application tracking**: Organize applications by status (active, submitted, interview, offered, rejected)
 - **Batch operations**: Format all documents for an application with a single command
 - **Web scraping**: Automatically archive job descriptions from URLs
+
+### Blog Posts
+- **Blog post management**: Create and organize blog posts with status tracking (drafts, published)
+- **HTML formatting**: Convert markdown blog posts to styled HTML with CSS
+- **Template system**: Multiple blog post templates with variable substitution
+- **Image support**: Dedicated images directory for each blog post
+- **Metadata tracking**: YAML frontmatter with tags, categories, and publishing dates
 
 ## Quick Start
 
@@ -71,11 +79,13 @@ Add content to your templates:
 
 - **Resume**: Edit `templates/resume/default.md`
 - **Cover Letter**: Edit `templates/cover_letter/default.md`
+- **Blog Posts**: Edit `templates/blog/default.md`
 
 Templates support variable substitution using `{{variable}}` syntax:
 
 - `{{name}}`, `{{email}}`, `{{phone}}`, etc. - replaced with your info
 - `{{date}}` - automatically generates current date
+- `{{title}}` - blog post title (blog templates only)
 - `{{email}}` becomes `[your.email@example.com](mailto:your.email@example.com)`
 - `{{website}}` becomes `[yourwebsite.com](https://yourwebsite.com)`
 
@@ -88,7 +98,7 @@ Reference documents control the final DOCX formatting:
 3. Save the file
 4. All future documents will use your custom formatting
 
-## Workflow
+## Job Application Workflow
 
 ### Create a Job Application
 
@@ -183,6 +193,74 @@ Create additional resume templates for different roles:
 
 The system automatically uses the correct reference document (`templates/resume/reference.docx`) for all resume templates.
 
+## Blog Post Workflow
+
+### Create a Blog Post
+
+```bash
+# Create a new blog post with default template
+blog-create "My Amazing Blog Post"
+
+# Create a blog post with specific template
+blog-create "Technical Tutorial" "tutorial"
+```
+
+This creates:
+- `blog/drafts/my_amazing_blog_post_07152025/`
+  - `content.md` (from template with your info substituted)
+  - `post.yml` (metadata: title, template, date, status, tags)
+  - `images/` (directory for blog post images)
+
+### Edit and Customize
+
+Edit the generated files for your blog post:
+
+- Customize `content.md` with your blog post content
+- Add images to the `images/` directory
+- Update `post.yml` with tags, category, and excerpt
+
+### Format Blog Post
+
+```bash
+# Convert blog post to HTML
+blog-format my_amazing_blog_post_07152025
+```
+
+Creates:
+- `blog/drafts/my_amazing_blog_post_07152025/formatted/index.html` (standalone with CSS)
+- `blog/drafts/my_amazing_blog_post_07152025/formatted/content.html` (plain HTML for platforms)
+
+### Track Blog Post Status
+
+```bash
+# View current status
+blog-status my_amazing_blog_post_07152025
+
+# Update status
+blog-status my_amazing_blog_post_07152025 published
+```
+
+### View Blog Post Summary
+
+```bash
+# Summary of all blog posts
+blog-log
+
+# Blog posts in specific status
+blog-log drafts
+blog-log published
+```
+
+### Adding Blog Templates
+
+Create additional blog templates for different post types:
+
+1. Add new template file: `templates/blog/tutorial.md`
+2. Customize content for tutorial posts
+3. Use in blog posts: `blog-create "How to Build X" "tutorial"`
+
+The system automatically uses the CSS styling from `templates/blog/style.css` for all blog templates.
+
 ## Individual Commands
 
 ### Template Processing
@@ -219,22 +297,29 @@ url-scrape "https://company.com/jobs/123" job_description.html
 ├── .writing.yml                # Personal configuration
 ├── VERSION                     # Version tracking
 ├── scripts/
-│   └── markdown.sh             # Core functions
+│   ├── markdown.sh             # Core functions
+│   └── sync.sh                 # Sync updates from template
 ├── templates/
 │   ├── resume/
 │   │   ├── default.md          # Default resume template
 │   │   ├── frontend.md         # Frontend-specific template
 │   │   ├── mobile.md           # Mobile-specific template
 │   │   └── reference.docx      # DOCX formatting reference
-│   └── cover_letter/
-│       ├── default.md          # Default cover letter template
-│       └── reference.docx      # DOCX formatting reference
-└── applications/
-    ├── active/                 # Applications in progress
-    ├── submitted/              # Applications submitted
-    ├── interview/              # Interview scheduled
-    ├── offered/                # Job offers received
-    └── rejected/               # Applications rejected
+│   ├── cover_letter/
+│   │   ├── default.md          # Default cover letter template
+│   │   └── reference.docx      # DOCX formatting reference
+│   └── blog/
+│       ├── default.md          # Default blog post template
+│       └── style.css           # CSS styling for HTML output
+├── applications/
+│   ├── active/                 # Applications in progress
+│   ├── submitted/              # Applications submitted
+│   ├── interview/              # Interview scheduled
+│   ├── offered/                # Job offers received
+│   └── rejected/               # Applications rejected
+└── blog/
+    ├── drafts/                 # Draft blog posts
+    └── published/              # Published blog posts
 ```
 
 ## Dependencies
@@ -277,8 +362,9 @@ Here's how:
 # Clone the original template to get updates
 git clone git@github.com:nickhart/markdown-writer.git ../markdown-writer-template
 
-# From your private repository, sync the updates
-./scripts/sync.sh ../markdown-writer-template
+# From the PUBLIC template repository, sync to your private repo
+cd ../markdown-writer-template
+./scripts/sync.sh ../your-private-repo
 ```
 
 **Method 2: Add the template as a remote**
@@ -292,19 +378,22 @@ git fetch template
 
 # Use sync script to copy specific files
 git clone template/main ../temp-template
-./scripts/sync.sh ../temp-template
+cd ../temp-template
+./scripts/sync.sh ../your-private-repo
 rm -rf ../temp-template
 ```
 
+**Important**: The sync script must be run FROM the public template repository, not from your private repository. This ensures you're using the latest version of the sync script itself.
+
 **What the sync script does:**
 
-- Copies core functionality (setup.sh, scripts/, .vscode/)
-- Updates template files without overwriting your personal data
-- Preserves your .writing.yml and application data
-- Updates .gitignore to protect your private information
+- **Safety checks**: Ensures your private repository has no uncommitted changes before syncing
+- **Core updates**: Copies setup.sh, scripts/, .vscode/ configuration, and templates/
+- **Smart merging**: Prompts for VSCode settings that might contain customizations
+- **Data preservation**: Never overwrites your .writing.yml, applications/, or blog/ content
+- **Interactive**: Shows diffs and lets you choose what to update
 
-Note: Since GitHub templates create a clean copy without git history connection to the original, you need to manually
-manage updates. The sync script helps copy only the files you want while protecting your personal data.
+The sync script includes multiple safety checks to prevent data loss and ensures you're always in control of what gets updated.
 
 ## Version
 

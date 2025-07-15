@@ -22,3 +22,6 @@ Thumbs.db
 *.swo
 *~
 .idea/
+
+# AI development files (for local development only)
+CLAUDE.md

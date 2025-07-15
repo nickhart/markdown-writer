@@ -873,3 +873,384 @@ job-commit() {
     
     return 0
 }
+
+# Create a new blog post in "drafts" status
+# Usage: blog-create <title> [template]
+# eg: blog-create "My Amazing Blog Post"
+# eg: blog-create "Tech Tutorial" "tutorial"
+blog-create() {
+    validate_project || return 1
+
+    local title="$1"
+    local template="$2"
+
+    if [[ -z "$title" ]]; then
+        log_error "Usage: blog-create <title> [template]"
+        log_error "Example: blog-create \"My Amazing Blog Post\""
+        return 1
+    fi
+
+    # Default template if not specified
+    if [[ -z "$template" ]]; then
+        template="default"
+    fi
+
+    # Create blog post directory name
+    local date_suffix=$(date +"%m%d%Y")
+    local post_name=$(sanitize_filename "${title}_${date_suffix}")
+    local post_path="$WRITING_PROJECT_ROOT/blog/drafts/$post_name"
+
+    # Check if post already exists
+    if [[ -d "$post_path" ]]; then
+        log_warning "Blog post already exists: $post_path"
+        return 1
+    fi
+
+    log_info "Creating blog post: $post_name"
+
+    # Create post directory and images subdirectory
+    mkdir -p "$post_path/images"
+
+    # Validate template exists
+    local template_path="$WRITING_PROJECT_ROOT/templates/blog/$template.md"
+    if [[ ! -f "$template_path" ]]; then
+        log_error "Blog template not found: $template_path"
+        rmdir "$post_path/images" "$post_path" 2>/dev/null
+        return 1
+    fi
+
+    # Create content.md from template with title substitution
+    log_info "Formatting blog post from template: $template"
+    local content_file="$post_path/content.md"
+    
+    # Read template and perform substitutions
+    local content=$(cat "$template_path")
+    local current_date=$(date +"%B %d, %Y")
+    
+    # Read config for personal info
+    local config_file="$WRITING_PROJECT_ROOT/.writing.yml"
+    if [[ -f "$config_file" ]] && command_exists yq; then
+        local name=$(yq '.name' "$config_file" 2>/dev/null | sed 's/^"//;s/"$//')
+        [[ "$name" == "null" ]] && name="Author"
+        
+        content="${content//\{\{name\}\}/$name}"
+    else
+        content="${content//\{\{name\}\}/Author}"
+    fi
+    
+    # Perform substitutions
+    content="${content//\{\{title\}\}/$title}"
+    content="${content//\{\{date\}\}/$current_date}"
+    
+    # Write content file
+    echo "$content" > "$content_file"
+
+    # Create blog post metadata YAML
+    local metadata_file="$post_path/post.yml"
+    cat > "$metadata_file" << EOF
+# Blog Post Metadata
+title: "$title"
+template: "$template"
+date_created: "$(date -Iseconds)"
+status: "drafts"
+slug: "$post_name"
+tags: []
+category: ""
+excerpt: ""
+EOF
+
+    log_success "Blog post created successfully!"
+    log_info "Location: $post_path"
+    log_info "Next steps:"
+    echo "  1. Edit content.md with your blog post content"
+    echo "  2. Add images to the images/ directory"
+    echo "  3. Update post.yml with tags and category"
+    echo "  4. Format to HTML: blog-format $post_name"
+    echo "  5. Publish: blog-status $post_name published"
+
+    return 0
+}
+
+# Check or change the status of a blog post
+# Usage: blog-status <post_name> [new_status]
+# eg: blog-status my_amazing_blog_post_01152024
+# eg: blog-status my_amazing_blog_post_01152024 published
+blog-status() {
+    validate_project || return 1
+
+    local post_name="$1"
+    local new_status="$2"
+
+    if [[ -z "$post_name" ]]; then
+        log_error "Usage: blog-status <post_name> [new_status]"
+        log_error "Valid statuses: drafts, published"
+        return 1
+    fi
+
+    # Valid status directories
+    local valid_statuses=("drafts" "published")
+    local current_status=""
+    local current_path=""
+
+    # Find the post in status directories
+    for blog_status in "${valid_statuses[@]}"; do
+        local check_path="$WRITING_PROJECT_ROOT/blog/$blog_status/$post_name"
+        if [[ -d "$check_path" ]]; then
+            current_status="$blog_status"
+            current_path="$check_path"
+            break
+        fi
+    done
+
+    if [[ -z "$current_status" ]]; then
+        log_error "Blog post not found: $post_name"
+        log_info "Available posts:"
+        for blog_status in "${valid_statuses[@]}"; do
+            local posts=$(ls "$WRITING_PROJECT_ROOT/blog/$blog_status/" 2>/dev/null | head -3)
+            if [[ -n "$posts" ]]; then
+                echo "  $blog_status: $(echo "$posts" | tr '\n' ' ')"
+            fi
+        done
+        return 1
+    fi
+
+    # If no new status provided, show current status
+    if [[ -z "$new_status" ]]; then
+        log_info "Blog post: $post_name"
+        log_info "Current status: $current_status"
+        log_info "Location: $current_path"
+
+        # Show metadata if available
+        local metadata_file="$current_path/post.yml"
+        if [[ -f "$metadata_file" ]]; then
+            echo ""
+            echo "Post details:"
+            cat "$metadata_file"
+        fi
+        return 0
+    fi
+
+    # Validate new status
+    local valid_new_status=false
+    for blog_status in "${valid_statuses[@]}"; do
+        if [[ "$blog_status" == "$new_status" ]]; then
+            valid_new_status=true
+            break
+        fi
+    done
+
+    if [[ "$valid_new_status" != true ]]; then
+        log_error "Invalid status: $new_status"
+        log_error "Valid statuses: ${valid_statuses[*]}"
+        return 1
+    fi
+
+    # If already in the requested status
+    if [[ "$current_status" == "$new_status" ]]; then
+        log_info "Blog post is already in status: $new_status"
+        return 0
+    fi
+
+    # Move to new status directory
+    local new_path="$WRITING_PROJECT_ROOT/blog/$new_status/$post_name"
+
+    log_info "Moving $post_name: $current_status → $new_status"
+
+    # Create target directory if it doesn't exist
+    mkdir -p "$WRITING_PROJECT_ROOT/blog/$new_status"
+
+    # Move the post directory
+    mv "$current_path" "$new_path" || {
+        log_error "Failed to move blog post to $new_status"
+        return 1
+    }
+
+    # Update metadata if available
+    local metadata_file="$new_path/post.yml"
+    if [[ -f "$metadata_file" ]] && command_exists yq; then
+        yq eval ".status = \"$new_status\"" -i "$metadata_file" 2>/dev/null || true
+        yq eval ".date_updated = \"$(date -Iseconds)\"" -i "$metadata_file" 2>/dev/null || true
+        
+        # Add publish date if moving to published
+        if [[ "$new_status" == "published" ]]; then
+            yq eval ".date_published = \"$(date -Iseconds)\"" -i "$metadata_file" 2>/dev/null || true
+        fi
+    fi
+
+    log_success "Blog post moved to: $new_status"
+    log_info "New location: $new_path"
+
+    return 0
+}
+
+# Show summary of blog posts by status
+# Usage: blog-log [status]
+# eg: blog-log
+# eg: blog-log published
+blog-log() {
+    validate_project || return 1
+
+    local filter_status="$1"
+    local valid_statuses=("drafts" "published")
+
+    # If specific status requested, validate it
+    if [[ -n "$filter_status" ]]; then
+        local valid_filter=false
+        for blog_status in "${valid_statuses[@]}"; do
+            if [[ "$blog_status" == "$filter_status" ]]; then
+                valid_filter=true
+                break
+            fi
+        done
+
+        if [[ "$valid_filter" != true ]]; then
+            log_error "Invalid status: $filter_status"
+            log_error "Valid statuses: ${valid_statuses[*]}"
+            return 1
+        fi
+    fi
+
+    echo "Blog Post Summary"
+    echo "=================="
+    echo ""
+
+    local total_count=0
+
+    # Show summary for each status (or just the filtered one)
+    for blog_status in "${valid_statuses[@]}"; do
+        if [[ -n "$filter_status" ]] && [[ "$blog_status" != "$filter_status" ]]; then
+            continue
+        fi
+
+        local status_dir="$WRITING_PROJECT_ROOT/blog/$blog_status"
+        local count=0
+
+        if [[ -d "$status_dir" ]]; then
+            count=$(ls -1 "$status_dir" 2>/dev/null | wc -l)
+            total_count=$((total_count + count))
+        fi
+
+        printf "%-12s: %d posts\n" "$blog_status" "$count"
+
+        # Show post names if filtering by specific status
+        if [[ -n "$filter_status" ]] && [[ "$count" -gt 0 ]]; then
+            echo ""
+            ls -1 "$status_dir" 2>/dev/null | while read -r post; do
+                echo "  - $post"
+                # Show brief metadata if available
+                local metadata_file="$status_dir/$post/post.yml"
+                if [[ -f "$metadata_file" ]]; then
+                    local title=$(yq '.title' "$metadata_file" 2>/dev/null | sed 's/^"//;s/"$//')
+                    local category=$(yq '.category' "$metadata_file" 2>/dev/null | sed 's/^"//;s/"$//')
+                    if [[ "$title" != "null" ]]; then
+                        echo "    Title: $title"
+                        if [[ "$category" != "null" ]] && [[ -n "$category" ]]; then
+                            echo "    Category: $category"
+                        fi
+                    fi
+                fi
+            done
+        fi
+    done
+
+    if [[ -z "$filter_status" ]]; then
+        echo ""
+        echo "Total: $total_count posts"
+    fi
+
+    return 0
+}
+
+# Format blog post content to HTML
+# Usage: blog-format <post_name>
+# eg: blog-format my_amazing_blog_post_01152024
+blog-format() {
+    validate_project || return 1
+
+    local post_name="$1"
+
+    if [[ -z "$post_name" ]]; then
+        log_error "Usage: blog-format <post_name>"
+        log_error "Example: blog-format my_amazing_blog_post_01152024"
+        return 1
+    fi
+
+    # Valid status directories
+    local valid_statuses=("drafts" "published")
+    local current_status=""
+    local current_path=""
+
+    # Find the post in status directories
+    for blog_status in "${valid_statuses[@]}"; do
+        local check_path="$WRITING_PROJECT_ROOT/blog/$blog_status/$post_name"
+        if [[ -d "$check_path" ]]; then
+            current_status="$blog_status"
+            current_path="$check_path"
+            break
+        fi
+    done
+
+    if [[ -z "$current_status" ]]; then
+        log_error "Blog post not found: $post_name"
+        log_info "Available posts:"
+        for blog_status in "${valid_statuses[@]}"; do
+            local posts=$(ls "$WRITING_PROJECT_ROOT/blog/$blog_status/" 2>/dev/null | head -3)
+            if [[ -n "$posts" ]]; then
+                echo "  $blog_status: $(echo "$posts" | tr '\n' ' ')"
+            fi
+        done
+        return 1
+    fi
+
+    log_info "Formatting blog post: $post_name"
+    log_info "Location: $current_path"
+
+    # Check if content.md exists
+    local content_file="$current_path/content.md"
+    if [[ ! -f "$content_file" ]]; then
+        log_error "Content file not found: $content_file"
+        return 1
+    fi
+
+    # Create formatted directory in the post folder
+    local formatted_dir="$current_path/formatted"
+    mkdir -p "$formatted_dir"
+
+    # Format to HTML
+    log_info "Converting content.md to HTML..."
+    local html_output="$formatted_dir/index.html"
+
+    # Use pandoc to convert to HTML with nice formatting
+    pandoc --standalone \
+           --from markdown \
+           --to html \
+           --css-url="../../../templates/blog/style.css" \
+           --metadata title="$(yq '.title' "$current_path/post.yml" 2>/dev/null | sed 's/^"//;s/"$//' || echo "Blog Post")" \
+           --output "$html_output" \
+           "$content_file" || {
+        log_error "Failed to convert content.md to HTML"
+        return 1
+    }
+
+    log_success "HTML created: $html_output"
+
+    # Also create a plain HTML version for blog platforms
+    local plain_html_output="$formatted_dir/content.html"
+    pandoc --from markdown \
+           --to html \
+           --output "$plain_html_output" \
+           "$content_file" || {
+        log_warning "Failed to create plain HTML version"
+    }
+
+    if [[ -f "$plain_html_output" ]]; then
+        log_success "Plain HTML created: $plain_html_output"
+    fi
+
+    log_success "Blog post formatted successfully!"
+    log_info "Files available in: $formatted_dir"
+    echo "  - index.html (standalone with CSS)"
+    echo "  - content.html (plain HTML for blog platforms)"
+
+    return 0
+}
